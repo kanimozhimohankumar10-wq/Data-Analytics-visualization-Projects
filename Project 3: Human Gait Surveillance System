@@ -1,0 +1,191 @@
+pip install numpy pandas matplotlib seaborn opencv-python mediapipe scikit-learn
+
+import cv2
+import mediapipe as mp
+import pandas as pd
+
+mp_pose = mp.solutions.pose
+pose = mp_pose.Pose()
+
+mp_draw = mp.solutions.drawing_utils
+
+cap = cv2.VideoCapture("walking_video.mp4")
+
+data = []
+
+while cap.isOpened():
+
+    success, frame = cap.read()
+
+    if not success:
+        break
+
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+    results = pose.process(rgb)
+
+    if results.pose_landmarks:
+
+        row = []
+
+        for landmark in results.pose_landmarks.landmark:
+            row.extend([
+                landmark.x,
+                landmark.y,
+                landmark.z
+            ])
+
+        data.append(row)
+
+        mp_draw.draw_landmarks(
+            frame,
+            results.pose_landmarks,
+            mp_pose.POSE_CONNECTIONS
+        )
+
+    cv2.imshow("Human Gait Detection", frame)
+
+    if cv2.waitKey(1) & 0xFF == 27:
+        break
+
+cap.release()
+cv2.destroyAllWindows()
+
+df = pd.DataFrame(data)
+
+df.to_csv("gait_features.csv", index=False)
+
+print("Gait Features Saved")
+import pandas as pd
+import numpy as np
+
+df = pd.read_csv("gait_features.csv")
+
+print("\nDataset Shape")
+print(df.shape)
+
+print("\nFirst Five Records")
+print(df.head())
+
+print("\nMean Values")
+print(np.mean(df))
+
+print("\nStandard Deviation")
+print(np.std(df))
+
+import pandas as pd
+import numpy as np
+
+df = pd.read_csv("gait_features.csv")
+
+np.random.seed(42)
+
+labels = np.random.randint(0, 2, len(df))
+
+df["Person_ID"] = labels
+
+df.to_csv("gait_dataset.csv", index=False)
+
+print("Labels Added")
+
+import pandas as pd
+
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+
+df = pd.read_csv("gait_dataset.csv")
+
+X = df.drop("Person_ID", axis=1)
+
+y = df["Person_ID"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+
+model = RandomForestClassifier(
+    n_estimators=100,
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+
+predictions = model.predict(X_test)
+
+accuracy = accuracy_score(y_test, predictions)
+
+print("\nAccuracy:", accuracy * 100)
+
+import pickle
+
+pickle.dump(model, open("gait_model.pkl", "wb"))
+
+print("Model Saved")
+
+import pandas as pd
+import pickle
+
+model = pickle.load(
+    open("gait_model.pkl", "rb")
+)
+
+sample = pd.read_csv("gait_dataset.csv")
+
+sample = sample.drop("Person_ID", axis=1)
+
+prediction = model.predict(
+    sample.iloc[:1]
+)
+
+print("\nPredicted Person:", prediction[0])
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+df = pd.read_csv("gait_dataset.csv")
+
+plt.figure(figsize=(15,10))
+
+# Feature Distribution
+plt.subplot(2,2,1)
+
+plt.hist(df.iloc[:,0], bins=20)
+
+plt.title("Feature Distribution")
+
+# Person Count
+plt.subplot(2,2,2)
+
+sns.countplot(
+    x="Person_ID",
+    data=df
+)
+
+plt.title("Person Identification")
+
+# Correlation Heatmap
+plt.subplot(2,2,3)
+
+sns.heatmap(
+    df.iloc[:,:20].corr(),
+    cmap="coolwarm"
+)
+
+plt.title("Correlation Matrix")
+
+# Feature Trend
+plt.subplot(2,2,4)
+
+plt.plot(df.iloc[:,0:5])
+
+plt.title("Gait Feature Trend")
+
+plt.tight_layout()
+
+plt.show()
+
