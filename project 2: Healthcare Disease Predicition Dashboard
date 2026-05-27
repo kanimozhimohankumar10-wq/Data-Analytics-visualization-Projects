@@ -1,0 +1,217 @@
+pip install numpy pandas matplotlib seaborn scikit-learn streamlit
+
+# =====================================================
+# HEALTHCARE DISEASE PREDICTION DASHBOARD
+# =====================================================
+
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix
+
+# -----------------------------------------------------
+# Generate Sample Healthcare Dataset
+# -----------------------------------------------------
+
+np.random.seed(42)
+
+n = 1000
+
+data = pd.DataFrame({
+    'Age': np.random.randint(20, 80, n),
+    'BloodPressure': np.random.randint(80, 180, n),
+    'Cholesterol': np.random.randint(150, 350, n),
+    'Glucose': np.random.randint(70, 250, n),
+    'BMI': np.random.uniform(18, 40, n).round(1)
+})
+
+# Disease Rule (Synthetic Dataset)
+data['Disease'] = (
+    (data['BloodPressure'] > 140) &
+    (data['Cholesterol'] > 240) &
+    (data['Glucose'] > 140)
+).astype(int)
+
+# Save Dataset
+data.to_csv("healthcare_data.csv", index=False)
+
+print("Dataset Created Successfully")
+
+# -----------------------------------------------------
+# Train Model
+# -----------------------------------------------------
+
+X = data.drop('Disease', axis=1)
+y = data['Disease']
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.2,
+    random_state=42
+)
+
+model = RandomForestClassifier(
+    n_estimators=100,
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+
+# -----------------------------------------------------
+# Evaluation
+# -----------------------------------------------------
+
+pred = model.predict(X_test)
+
+accuracy = accuracy_score(y_test, pred)
+
+print("\nModel Accuracy:", round(accuracy*100,2), "%")
+
+print("\nConfusion Matrix")
+print(confusion_matrix(y_test, pred))
+
+# -----------------------------------------------------
+# Save Model
+# -----------------------------------------------------
+
+import pickle
+
+pickle.dump(model, open("disease_model.pkl", "wb"))
+
+print("\nModel Saved Successfully")
+
+import streamlit as st
+import pandas as pd
+import pickle
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# -----------------------------------------------------
+# Load Dataset and Model
+# -----------------------------------------------------
+
+data = pd.read_csv("healthcare_data.csv")
+
+model = pickle.load(open("disease_model.pkl", "rb"))
+
+# -----------------------------------------------------
+# Dashboard Title
+# -----------------------------------------------------
+
+st.title("🏥 Healthcare Disease Prediction Dashboard")
+
+st.markdown("---")
+
+# -----------------------------------------------------
+# Dataset Overview
+# -----------------------------------------------------
+
+st.subheader("Dataset Preview")
+
+st.dataframe(data.head())
+
+# -----------------------------------------------------
+# Statistics
+# -----------------------------------------------------
+
+st.subheader("Dataset Statistics")
+
+st.write(data.describe())
+
+# -----------------------------------------------------
+# Disease Distribution
+# -----------------------------------------------------
+
+st.subheader("Disease Distribution")
+
+fig, ax = plt.subplots()
+
+sns.countplot(
+    x=data["Disease"],
+    ax=ax
+)
+
+ax.set_title("Disease Cases")
+
+st.pyplot(fig)
+
+# -----------------------------------------------------
+# Correlation Heatmap
+# -----------------------------------------------------
+
+st.subheader("Feature Correlation")
+
+fig2, ax2 = plt.subplots(figsize=(8,6))
+
+sns.heatmap(
+    data.corr(),
+    annot=True,
+    cmap="coolwarm",
+    ax=ax2
+)
+
+st.pyplot(fig2)
+
+# -----------------------------------------------------
+# Prediction Section
+# -----------------------------------------------------
+
+st.subheader("Patient Disease Prediction")
+
+age = st.slider("Age", 20, 80, 40)
+
+bp = st.slider("Blood Pressure", 80, 180, 120)
+
+chol = st.slider("Cholesterol", 150, 350, 200)
+
+glucose = st.slider("Glucose", 70, 250, 120)
+
+bmi = st.slider("BMI", 18.0, 40.0, 25.0)
+
+if st.button("Predict Disease Risk"):
+
+    patient = [[
+        age,
+        bp,
+        chol,
+        glucose,
+        bmi
+    ]]
+
+    prediction = model.predict(patient)
+
+    probability = model.predict_proba(patient)
+
+    if prediction[0] == 1:
+        st.error("⚠ High Risk of Disease")
+    else:
+        st.success("✅ Low Risk of Disease")
+
+    st.write(
+        "Prediction Probability:",
+        round(max(probability[0])*100,2),
+        "%"
+    )
+
+# -----------------------------------------------------
+# Feature Importance
+# -----------------------------------------------------
+
+st.subheader("Feature Importance")
+
+importance = model.feature_importances_
+
+features = ['Age',
+            'BloodPressure',
+            'Cholesterol',
+            'Glucose',
+            'BMI']
+
+fig3, ax3 = plt.subplots()
+
+ax3.bar(features, importance)
+
+ax3.set_title("Feature Importance")
+
+st.pyplot(fig3)
