@@ -1,0 +1,241 @@
+# ==========================================
+# Student Placement Prediction & Analytics
+# ==========================================
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import classification_report
+
+# ------------------------------------------
+# Load Dataset
+# ------------------------------------------
+
+df = pd.read_csv("student_placement.csv")
+
+print("\nDataset Preview")
+print(df.head())
+
+# ------------------------------------------
+# Dataset Information
+# ------------------------------------------
+
+print("\nDataset Information")
+print(df.info())
+
+print("\nMissing Values")
+print(df.isnull().sum())
+
+# ------------------------------------------
+# Statistical Summary
+# ------------------------------------------
+
+print("\nStatistical Summary")
+print(df.describe())
+
+# ------------------------------------------
+# Encode Placement Column
+# ------------------------------------------
+
+le = LabelEncoder()
+
+df["Placement_Status"] = le.fit_transform(
+    df["Placement"]
+)
+
+# Not Placed = 0
+# Placed = 1
+
+# ------------------------------------------
+# Placement Statistics
+# ------------------------------------------
+
+placement_count = df["Placement"].value_counts()
+
+print("\nPlacement Distribution")
+print(placement_count)
+
+# ------------------------------------------
+# Average CGPA by Placement
+# ------------------------------------------
+
+cgpa_analysis = df.groupby(
+    "Placement"
+)["CGPA"].mean()
+
+print("\nAverage CGPA")
+print(cgpa_analysis)
+
+# ------------------------------------------
+# Data Visualization
+# ------------------------------------------
+
+plt.figure(figsize=(6,5))
+sns.countplot(
+    x="Placement",
+    data=df
+)
+plt.title("Placement Distribution")
+plt.show()
+
+# ------------------------------------------
+# CGPA Distribution
+# ------------------------------------------
+
+plt.figure(figsize=(8,5))
+sns.histplot(
+    df["CGPA"],
+    bins=8,
+    kde=True
+)
+plt.title("CGPA Distribution")
+plt.show()
+
+# ------------------------------------------
+# Correlation Heatmap
+# ------------------------------------------
+
+numeric_data = df.select_dtypes(
+    include=np.number
+)
+
+plt.figure(figsize=(8,6))
+sns.heatmap(
+    numeric_data.corr(),
+    annot=True,
+    cmap="coolwarm"
+)
+plt.title("Feature Correlation")
+plt.show()
+
+# ------------------------------------------
+# Feature Selection
+# ------------------------------------------
+
+X = df[
+    [
+        "CGPA",
+        "Internships",
+        "Projects",
+        "CommunicationSkills"
+    ]
+]
+
+y = df["Placement_Status"]
+
+# ------------------------------------------
+# Split Dataset
+# ------------------------------------------
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+
+# ------------------------------------------
+# Train Logistic Regression Model
+# ------------------------------------------
+
+model = LogisticRegression()
+
+model.fit(
+    X_train,
+    y_train
+)
+
+# ------------------------------------------
+# Prediction
+# ------------------------------------------
+
+y_pred = model.predict(X_test)
+
+# ------------------------------------------
+# Accuracy
+# ------------------------------------------
+
+accuracy = accuracy_score(
+    y_test,
+    y_pred
+)
+
+print("\nModel Accuracy:")
+print(round(accuracy * 100, 2), "%")
+
+# ------------------------------------------
+# Confusion Matrix
+# ------------------------------------------
+
+cm = confusion_matrix(
+    y_test,
+    y_pred
+)
+
+print("\nConfusion Matrix")
+print(cm)
+
+# ------------------------------------------
+# Classification Report
+# ------------------------------------------
+
+print("\nClassification Report")
+print(
+    classification_report(
+        y_test,
+        y_pred
+    )
+)
+
+# ------------------------------------------
+# Predict New Student
+# ------------------------------------------
+
+new_student = np.array(
+    [[8.4, 2, 3, 8]]
+)
+
+prediction = model.predict(
+    new_student
+)
+
+if prediction[0] == 1:
+    print("\nPrediction: Student Likely to be PLACED")
+else:
+    print("\nPrediction: Student Likely to be NOT PLACED")
+
+# ------------------------------------------
+# Feature Importance
+# ------------------------------------------
+
+importance = pd.DataFrame({
+    "Feature": X.columns,
+    "Coefficient": model.coef_[0]
+})
+
+print("\nFeature Importance")
+print(
+    importance.sort_values(
+        by="Coefficient",
+        ascending=False
+    )
+)
+
+# ------------------------------------------
+# Save Analytics Report
+# ------------------------------------------
+
+df.to_csv(
+    "Student_Placement_Report.csv",
+    index=False
+)
+
+print("\nAnalysis Completed Successfully!")
+print("Report Saved as Student_Placement_Report.csv")
