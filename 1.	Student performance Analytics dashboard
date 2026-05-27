@@ -1,0 +1,144 @@
+# =====================================================
+# STUDENT PERFORMANCE ANALYTICS DASHBOARD
+# Python for Data Science Mini Project
+# =====================================================
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# -----------------------------------------------------
+# STEP 1: Generate Student Data
+# -----------------------------------------------------
+
+np.random.seed(42)
+
+n_students = 100
+
+students = pd.DataFrame({
+    'Student_ID': range(1, n_students + 1),
+    'Math': np.random.randint(40, 100, n_students),
+    'Science': np.random.randint(40, 100, n_students),
+    'English': np.random.randint(40, 100, n_students),
+    'Computer': np.random.randint(40, 100, n_students),
+    'Tamil': np.random.randint(40, 100, n_students)
+})
+
+# -----------------------------------------------------
+# STEP 2: Calculate Total and Average
+# -----------------------------------------------------
+
+students['Total'] = students[['Math', 'Science',
+                              'English', 'Computer',
+                              'Tamil']].sum(axis=1)
+
+students['Average'] = students['Total'] / 5
+
+# -----------------------------------------------------
+# STEP 3: Assign Grades
+# -----------------------------------------------------
+
+def grade(avg):
+    if avg >= 90:
+        return 'A+'
+    elif avg >= 80:
+        return 'A'
+    elif avg >= 70:
+        return 'B'
+    elif avg >= 60:
+        return 'C'
+    elif avg >= 50:
+        return 'D'
+    else:
+        return 'F'
+
+students['Grade'] = students['Average'].apply(grade)
+
+# -----------------------------------------------------
+# STEP 4: Display Dataset
+# -----------------------------------------------------
+
+print("\nFirst 10 Student Records\n")
+print(students.head(10))
+
+# -----------------------------------------------------
+# STEP 5: Subject Statistics
+# -----------------------------------------------------
+
+subjects = ['Math', 'Science', 'English',
+            'Computer', 'Tamil']
+
+print("\nSubject Statistics\n")
+
+for subject in subjects:
+    print(f"\n{subject}")
+    print("Mean :", round(students[subject].mean(), 2))
+    print("Max  :", students[subject].max())
+    print("Min  :", students[subject].min())
+
+# -----------------------------------------------------
+# STEP 6: Top Performer
+# -----------------------------------------------------
+
+topper = students.loc[students['Total'].idxmax()]
+
+print("\nTop Performer")
+print(topper)
+
+# -----------------------------------------------------
+# STEP 7: Dashboard Visualization
+# -----------------------------------------------------
+
+plt.figure(figsize=(16, 10))
+
+# Chart 1: Average Marks by Subject
+plt.subplot(2, 2, 1)
+
+subject_avg = students[subjects].mean()
+
+subject_avg.plot(kind='bar')
+
+plt.title("Average Marks by Subject")
+plt.ylabel("Marks")
+
+# Chart 2: Grade Distribution
+plt.subplot(2, 2, 2)
+
+sns.countplot(x='Grade',
+              data=students,
+              order=['A+', 'A', 'B', 'C', 'D', 'F'])
+
+plt.title("Grade Distribution")
+
+# Chart 3: Marks Distribution
+plt.subplot(2, 2, 3)
+
+plt.hist(students['Average'],
+         bins=10)
+
+plt.title("Average Marks Distribution")
+plt.xlabel("Average Marks")
+plt.ylabel("Number of Students")
+
+# Chart 4: Correlation Heatmap
+plt.subplot(2, 2, 4)
+
+sns.heatmap(students[subjects].corr(),
+            annot=True,
+            cmap='coolwarm')
+
+plt.title("Subject Correlation")
+
+plt.tight_layout()
+plt.show()
+
+# -----------------------------------------------------
+# STEP 8: Save Report
+# -----------------------------------------------------
+
+students.to_csv("student_performance_report.csv",
+                index=False)
+
+print("\nReport Saved Successfully!")
+print("File Name: student_performance_report.csv")
